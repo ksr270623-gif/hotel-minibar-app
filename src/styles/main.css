@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+
+:root {
+    --gold: #c5a059;
+    --dark: #1a1a1a;
+    --light-gray: #f8f9fa;
+    --border: #e9ecef;
+    --success: #28a745;
+    --danger: #dc3545;
+}
+
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #ffffff;
+    color: var(--dark);
+}
+
+/* ШАПКА */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.brand-name { font-weight: 600; letter-spacing: 4px; font-size: 18px; }
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* КОНТЕНТ */
+.page-content {
+    padding: 24px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.page-title {
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin: 20px 0 30px;
+    text-align: center;
+}
+
+/* ЭКРАН ВЫБОРА ЭТАЖЕЙ (Золотые карточки) */
+.floor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.floor-card {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background: var(--light-gray);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+    border: 1px solid transparent;
+}
+
+.floor-card:hover {
+    border-color: var(--gold);
+    background: white;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.floor-number {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-right: 20px;
+    border-right: 2px solid var(--gold);
+    padding-right: 20px;
+}
+
+/* КНОПКИ ВНИЗУ ЭТАЖЕЙ */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.expiry-btn, .admin-access-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+}
+
+.expiry-btn { background: #fff1f0; color: var(--danger); }
+.admin-access-btn { background: #f8f9fa; color: #555; }
+
+/* СЕТКА НОМЕРОВ */
+.room-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+    gap: 12px;
+}
+
+.room-box {
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.status-checked { border: 2px solid var(--success) !important; color: var(--success); background: #f6ffed !important; }
+.status-dnd { border: 2px solid var(--danger) !important; color: var(--danger); background: #fff1f0 !important; }
+
+/* ПОИСК */
+.search-container { margin-bottom: 20px; }
+.search-input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+/* АДМИН ПАНЕЛЬ (Статистика) */
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.stat-value { font-size: 28px; font-weight: 600; display: block; }
+.stat-label { font-size: 10px; color: #999; text-transform: uppercase; margin-top: 4px; }
+
+/* ПЕРЕКЛЮЧАТЕЛЬ ДНЕЙ */
+.admin-settings-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.threshold-buttons {
+    display: flex;
+    background: #f1f3f5;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.t-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 11px;
+    color: #666;
+}
+
+.t-btn.active {
+    background: white;
+    color: var(--gold);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-download {
+    width: 100%;
+    background: var(--dark);
+    color: white;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ТАБЛИЦА ПРОСРОЧКИ */
+.expiry-table { width: 100%; border-collapse: collapse; }
+.expiry-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--gold); font-size: 12px; }
+.expiry-table td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+.expired { background-color: #fff1f0; }
+.warning { background-color: #fffbe6; }
+
+/* АНИМАЦИЯ */
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
