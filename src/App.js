@@ -11,19 +11,22 @@ import './styles/main.css';
 import './styles/inventory.css';
 
 function App() {
-    // --- ПОЛЬЗОВАТЕЛИ (С проверкой на обновление пароля) ---
+    // --- ПОЛЬЗОВАТЕЛИ (С фиксом пароля) ---
     const [users, setUsers] = useState(() => {
         const saved = localStorage.getItem('hotel_users');
         const defaultUsers = [
-            { login: 'admin', pass: 'admin777', role: 'supervisor' }, // ТВОЙ НОВЫЙ ПАРОЛЬ
+            { login: 'admin', pass: 'admin777', role: 'supervisor' },
             { login: 'staff1', pass: '0000', role: 'staff' }
         ];
 
         if (!saved) return defaultUsers;
 
         const parsed = JSON.parse(saved);
-        // Проверяем, есть ли там админ. Если пароль в памяти не совпадает с новым,
-        // можно временно закомментировать 'saved' проверку или просто очистить кеш.
+        // Синхронизируем пароль админа из кода с памятью браузера
+        const adminIndex = parsed.findIndex(u => u.login === 'admin');
+        if (adminIndex !== -1) {
+            parsed[adminIndex].pass = 'admin777';
+        }
         return parsed;
     });
 
@@ -56,7 +59,7 @@ function App() {
         localStorage.setItem('hotel_logs', JSON.stringify(dailyLogs));
     }, [users, rooms, archive, dailyLogs]);
 
-    // --- ЛОГИКА СБРОСА В ПОЛНОЧЬ ---
+    // --- УЛУЧШЕННАЯ ЛОГИКА АРХИВА (00:00) ---
     useEffect(() => {
         const checkMidnight = () => {
             const lastActiveDate = localStorage.getItem('last_active_date');
@@ -68,10 +71,12 @@ function App() {
                     stats: {
                         checked: rooms.filter(r => r.status === 'checked').length,
                         dnd: rooms.filter(r => r.status === 'dnd').length
-                    }
+                    },
+                    logs: [...dailyLogs] // СОХРАНЯЕМ ДЕТАЛИЗАЦИЮ В АРХИВ
                 };
                 setArchive(prev => [dailyReport, ...prev]);
-                setRooms(rooms.map(r => ({ ...r, status: 'unchecked', notes: '' })));
+                // Сбрасываем только статус, оставляя инвентарь и важные заметки
+                setRooms(rooms.map(r => ({ ...r, status: 'unchecked' })));
                 setDailyLogs([]);
             }
             localStorage.setItem('last_active_date', today);
@@ -84,8 +89,8 @@ function App() {
         const oldRoom = rooms.find(r => r.id === updatedRoom.id);
         let newSales = [];
 
-        // Считаем расход для админки
         updatedRoom.inventory.forEach((newItem, i) => {
+            // Если дата изменилась — это продажа/замена
             if (newItem.expiry !== oldRoom.inventory[i].expiry && newItem.expiry !== '') {
                 newSales.push({ name: newItem.name, qty: 1 });
             }
@@ -109,7 +114,6 @@ function App() {
         setScreen('login');
     };
 
-    // --- ОТОБРАЖЕНИЕ ---
     if (!user) {
         return <Login users={users} onLogin={(userData) => { setUser(userData); setScreen('floors'); }} />;
     }

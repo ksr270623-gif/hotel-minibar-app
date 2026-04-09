@@ -1,14 +1,43 @@
 import React, { useState } from 'react';
 
 const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users, setUsers }) => {
-    const [view, setView] = useState('stats'); // stats, archive, products, users
+    const [view, setView] = useState('stats');
     const [newUser, setNewUser] = useState({ login: '', pass: '', role: 'staff' });
 
-    // --- ФУНКЦИИ УПРАВЛЕНИЯ ПЕРСОНАЛОМ ---
+    // --- ФУНКЦИЯ ЭКСПОРТА В EXCEL (CSV) ---
+    const exportToExcel = () => {
+        if (dailyLogs.length === 0) return alert("Нет данных для экспорта за сегодня");
+
+        // Заголовки таблицы
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Vremya;Sotrudnik;Nomer;Deystvie;Prodazhi/Zameny\r\n";
+
+        // Заполнение строками
+        dailyLogs.forEach(log => {
+            const salesText = log.sales && log.sales.length > 0
+                ? log.sales.map(s => `${s.name}(${s.qty})`).join(" ")
+                : "-";
+            const row = `${log.time};${log.staff};${log.roomId};${log.action};${salesText}`;
+            csvContent += row + "\r\n";
+        });
+
+        // Создание ссылки для скачивания
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Otchet_Minibar_${new Date().toLocaleDateString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleAddUser = () => {
         if (!newUser.login || !newUser.pass) return alert("Заполните логин и пароль");
         if (users.find(u => u.login === newUser.login)) return alert("Этот логин уже занят");
-        setUsers([...users, newUser]);
+        const updatedUsers = [...users, newUser];
+        setUsers(updatedUsers);
+        // Сохраняем сразу, чтобы не потерять
+        localStorage.setItem('hotel_users', JSON.stringify(updatedUsers));
         setNewUser({ login: '', pass: '', role: 'staff' });
         alert("Сотрудник успешно добавлен!");
     };
@@ -16,7 +45,9 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
     const handleChangePassword = (login) => {
         const newPass = prompt(`Введите новый пароль для ${login}:`);
         if (newPass && newPass.trim() !== "") {
-            setUsers(users.map(u => u.login === login ? { ...u, pass: newPass } : u));
+            const updatedUsers = users.map(u => u.login === login ? { ...u, pass: newPass } : u);
+            setUsers(updatedUsers);
+            localStorage.setItem('hotel_users', JSON.stringify(updatedUsers));
             alert("Пароль изменен!");
         }
     };
@@ -24,19 +55,18 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
     const handleDeleteUser = (login) => {
         if (login === 'admin') return alert("Главного админа нельзя удалить");
         if (window.confirm(`Удалить доступ для ${login}?`)) {
-            setUsers(users.filter(u => u.login !== login));
+            const updatedUsers = users.filter(u => u.login !== login);
+            setUsers(updatedUsers);
+            localStorage.setItem('hotel_users', JSON.stringify(updatedUsers));
         }
     };
 
-    // --- РАСЧЕТ СТАТИСТИКИ ПО ТОВАРАМ ---
     const getProductStats = () => {
         let stats = {};
         rooms.forEach(room => {
             room.inventory.forEach(item => {
                 if (!stats[item.name]) stats[item.name] = { total: 0, expired: 0 };
                 stats[item.name].total += item.count;
-
-                // Проверка срока годности
                 if (item.expiry && item.expiry !== 'нет' && item.expiry !== '') {
                     const diff = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
                     if (diff < threshold) stats[item.name].expired += 1;
@@ -52,7 +82,6 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
         <div className="page-content fade-in">
             <h2 className="page-title">Управление отелем</h2>
 
-            {/* Навигация (вкладки) */}
             <div className="threshold-buttons" style={{ marginBottom: '20px', display: 'flex', overflowX: 'auto', gap: '5px' }}>
                 <button className={`t-btn ${view === 'stats' ? 'active' : ''}`} onClick={() => setView('stats')}>LIVE</button>
                 <button className={`t-btn ${view === 'products' ? 'active' : ''}`} onClick={() => setView('products')}>ТОВАРЫ</button>
@@ -60,9 +89,12 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                 <button className={`t-btn ${view === 'archive' ? 'active' : ''}`} onClick={() => setView('archive')}>АРХИВ</button>
             </div>
 
-            {/* 1. ВКЛАДКА: LIVE (Активность за сегодня) */}
             {view === 'stats' && (
                 <div className="fade-in">
+                    <button className="btn-save" onClick={exportToExcel} style={{width: '100%', marginBottom: '15px', background: '#28a745'}}>
+                        📊 СКАЧАТЬ ОТЧЕТ В EXCEL
+                    </button>
+
                     <div className="admin-stats-grid">
                         <div className="stat-card">
                             <span className="stat-value" style={{color: '#28a745'}}>{rooms.filter(r => r.status === 'checked').length}</span>
@@ -73,13 +105,21 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                             <span className="stat-label">DND</span>
                         </div>
                     </div>
+
                     <div className="admin-settings-section">
                         <h3>Действия сегодня</h3>
-                        <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+                        <div style={{maxHeight: '400px', overflowY: 'auto'}}>
                             {dailyLogs.length === 0 ? <p style={{fontSize: '12px', color: '#999'}}>Лента пуста</p> :
                                 dailyLogs.map((log, i) => (
-                                    <div key={i} style={{fontSize: '12px', padding: '8px 0', borderBottom: '1px solid #eee'}}>
-                                        <b>{log.time}</b> | {log.staff} | №{log.roomId} — <span style={{color: log.action === 'DND' ? 'red' : 'green'}}>{log.action}</span>
+                                    <div key={i} style={{fontSize: '12px', padding: '10px 0', borderBottom: '1px solid #eee'}}>
+                                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                            <b>{log.time} — №{log.roomId}</b>
+                                            <span style={{color: log.action === 'DND' ? 'red' : 'green'}}>{log.action}</span>
+                                        </div>
+                                        <div style={{color: '#666'}}>Сотрудник: {log.staff}</div>
+                                        {log.sales && log.sales.length > 0 && (
+                                            <div style={{color: 'var(--gold)', fontSize: '11px'}}>Замена: {log.sales.map(s => s.name).join(', ')}</div>
+                                        )}
                                     </div>
                                 ))
                             }
@@ -88,7 +128,6 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                 </div>
             )}
 
-            {/* 2. ВКЛАДКА: ТОВАРЫ (Статистика расхода и запасов) */}
             {view === 'products' && (
                 <div className="admin-settings-section fade-in">
                     <h3>Аналитика продукции</h3>
@@ -103,12 +142,10 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                         </thead>
                         <tbody>
                         {Object.keys(productStats).map(name => {
-                            // Считаем расход из логов (сколько раз поменяли дату у этого товара сегодня)
                             const consumed = dailyLogs.reduce((acc, log) => {
                                 const sale = log.sales?.find(s => s.name === name);
                                 return acc + (sale ? sale.qty : 0);
                             }, 0);
-
                             return (
                                 <tr key={name} style={{ borderBottom: '1px solid #f9f9f9' }}>
                                     <td style={{ padding: '12px 0' }}>{name}</td>
@@ -123,7 +160,6 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                 </div>
             )}
 
-            {/* 3. ВКЛАДКА: ПЕРСОНАЛ (Логины, Пароли, Добавление) */}
             {view === 'users' && (
                 <div className="fade-in">
                     <div className="admin-settings-section" style={{background: '#fcf8f0', border: '1px solid #e2d1b3'}}>
@@ -143,8 +179,8 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                                     <div style={{fontSize: '11px', color: 'var(--gold)'}}>Пароль: {u.pass}</div>
                                 </div>
                                 <div style={{display: 'flex', gap: '10px'}}>
-                                    <button onClick={() => handleChangePassword(u.login)} style={{background: 'none', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer'}}>🔑</button>
-                                    {u.login !== 'admin' && <button onClick={() => handleDeleteUser(u.login)} style={{color: 'red', background: 'none', border: 'none', cursor: 'pointer'}}>❌</button>}
+                                    <button onClick={() => handleChangePassword(u.login)} title="Сменить пароль">🔑</button>
+                                    {u.login !== 'admin' && <button onClick={() => handleDeleteUser(u.login)} style={{color: 'red'}}>❌</button>}
                                 </div>
                             </div>
                         ))}
@@ -152,17 +188,24 @@ const AdminPanel = ({ rooms, archive, dailyLogs, threshold, setThreshold, users,
                 </div>
             )}
 
-            {/* 4. ВКЛАДКА: АРХИВ (Прошлые дни) */}
             {view === 'archive' && (
                 <div className="admin-settings-section fade-in">
-                    <h3>Архив отчетов (00:00)</h3>
-                    {archive.length === 0 ? <p style={{fontSize: '12px', color: '#999'}}>В архиве пока нет записей</p> :
+                    <h3>Архив отчетов</h3>
+                    {archive.length === 0 ? <p style={{fontSize: '12px', color: '#999'}}>Архив пуст</p> :
                         archive.map((day, i) => (
                             <div key={i} style={{padding: '12px', background: '#f8f9fa', borderRadius: '8px', marginBottom: '8px', borderLeft: '4px solid var(--gold)'}}>
                                 <b>{day.date}</b>
                                 <div style={{fontSize: '12px', marginTop: '5px'}}>
-                                    Проверено: {day.stats.checked} | Отказ/DND: {day.stats.dnd}
+                                    Проверено: {day.stats?.checked || 0} | DND: {day.stats?.dnd || 0}
                                 </div>
+                                {day.logs && (
+                                    <details style={{marginTop: '5px', fontSize: '11px', color: '#666'}}>
+                                        <summary>Посмотреть детализацию (кто заходил)</summary>
+                                        {day.logs.map((l, idx) => (
+                                            <div key={idx}>{l.time} - №{l.roomId} ({l.staff})</div>
+                                        ))}
+                                    </details>
+                                )}
                             </div>
                         ))
                     }

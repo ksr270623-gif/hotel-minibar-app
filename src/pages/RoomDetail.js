@@ -6,7 +6,6 @@ const RoomDetail = ({ room, user, onSave }) => {
     const [note, setNote] = useState(room.notes || '');
     const [cleaningDate, setCleaningDate] = useState(room.lastDeepCleaning || '');
 
-    // Функция для отображения даты из формата YYYY-MM-DD в DD.MM.YY
     const formatDateForDisplay = (dateStr) => {
         if (!dateStr || dateStr === '') return '';
         const parts = dateStr.split('-');
@@ -14,7 +13,6 @@ const RoomDetail = ({ room, user, onSave }) => {
         return `${parts[2]}.${parts[1]}.${parts[0].slice(2)}`;
     };
 
-    // Обработка ввода цифр для даты чистки (маска ДДММГГ)
     const handleCleaningDateBlur = (e) => {
         const val = e.target.value.replace(/\D/g, '');
         if (val.length === 6) {
@@ -83,7 +81,7 @@ const RoomDetail = ({ room, user, onSave }) => {
                 <button
                     className="btn-dnd"
                     style={{ flex: 1, padding: '18px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600' }}
-                    onClick={() => onSave({...room, status: 'dnd', notes: note, lastDeepCleaning: cleaningDate})}
+                    onClick={() => onSave({...room, inventory: items, status: 'dnd', notes: note, lastDeepCleaning: cleaningDate})}
                 >
                     DND
                 </button>
